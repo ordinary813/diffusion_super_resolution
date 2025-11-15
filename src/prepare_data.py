@@ -6,7 +6,7 @@ def download_div2k():
     abs_download_dir = os.path.abspath(download_dir)
     os.makedirs(download_dir, exist_ok=True)
 
-    # Set the actual download path to the data dir
+    # Set download path
     os.environ["KAGGLEHUB_CACHE"] = abs_download_dir
 
     path = kagglehub.dataset_download(
@@ -20,7 +20,7 @@ def download_celebA():
     abs_download_dir = os.path.abspath(download_dir)
     os.makedirs(download_dir, exist_ok=True)
 
-    # Set the actual download path to the data dir
+    # Set download path
     os.environ["KAGGLEHUB_CACHE"] = abs_download_dir
 
     path = kagglehub.dataset_download(
