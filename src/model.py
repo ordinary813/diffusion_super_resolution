@@ -5,7 +5,7 @@ import torch.nn.functional as F
 # Sinusoidal PE
 class TimeEmbedding(nn.Module):
     def __init__(self, time_emb_dim, n_channels):
-        super().__init__
+        super().__init__()
         
         self.n_channels = n_channels
         self.time_emb_dim = time_emb_dim
@@ -52,8 +52,8 @@ class StandardUNet(nn.Module):
     def __init__(self, in_channels=3, model_channels=64, time_emb_dim=256):
         super().__init__()
         
-        self.time_mlp = TimeEmbedding(time_emb_dim)
-        self.conv0 = nn.Conv2d(in_channels * 2, model_channels, 3, 1)
+        self.time_mlp = TimeEmbedding(time_emb_dim, time_emb_dim)
+        self.conv0 = nn.Conv2d(in_channels * 2, model_channels, 3, padding=1)
         
         self.down1 = Block(model_channels, model_channels, time_emb_dim)
         self.down2 = Block(model_channels, model_channels * 2, time_emb_dim)
