@@ -44,3 +44,9 @@ python3 sample.py
     ├── 🗎 sample.py
     └── 🗎 train.py
 ```
+
+## Most recent model performance
+<span style="color:salmon">**At this point the model does not produce satisfactory results.**
+</span>
+
+![Models results](src/comparison_plot_all_models.png "Models results")
