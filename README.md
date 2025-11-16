@@ -19,12 +19,28 @@ Download datasets with
 python3 prepare_data.py
 ```
 
+Train the UNet model
+```
+python3 train.py
+```
+
+Test the trained models
+```
+python3 sample.py
+```
+
 ## Current project structure
 ``` bash
 .
-├── README.md
-├── requirements.txt
-└── src
-    ├── model.py
-    └── prepare_data.py
+├── 🗎 README.md
+├── 🗎 requirements.txt
+└── 🗀 src
+    ├── 🗀 models
+    ├── 🗎 data.py
+    ├── 🗎 diffusion.py
+    ├── 🗎 model.py
+    ├── 🗎 comparison_plot_all_models.png
+    ├── 🗎 prepare_data.py
+    ├── 🗎 sample.py
+    └── 🗎 train.py
 ```
