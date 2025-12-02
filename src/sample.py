@@ -44,7 +44,7 @@ def un_normalize(tensor):
     return tensor
 
 # Runs reverse diffusion
-def run_sampling_loop(model, diffusion, condition):
+def run_sampling_loop(model, diffusion, condition, cfg_scale=4.0):
     # Start with pure noise
     x_t = torch.randn_like(condition)
     
@@ -52,7 +52,7 @@ def run_sampling_loop(model, diffusion, condition):
     
     with torch.no_grad():
         for t in reversed(range(diffusion.timesteps)):
-            x_t = diffusion.sample_step(model, x_t, t, condition)
+            x_t = diffusion.sample_step(model, x_t, t, condition, cfg_scale=cfg_scale)
     return x_t
 
 
@@ -120,7 +120,7 @@ if __name__ == "__main__":
         model.eval()
         
         # Run inference
-        predicted_x_t = run_sampling_loop(model, diffusion, condition)
+        predicted_x_t = run_sampling_loop(model, diffusion, condition, cfg_scale=4.0)
         
         # Original HR
         ax[i, 0].imshow(un_normalize(hr_original))

@@ -17,7 +17,7 @@ def train(config):
     scale_factor = config['data']['scale_factor']
     
     ### Load Data ###
-    print("Loading dataset...")
+    print("Loading dataset")
     dataset = SuperResDataset(data_path, hr_size, scale_factor)
     dataloader = DataLoader(
         dataset,
@@ -27,7 +27,7 @@ def train(config):
     )
     
     ### Build Model ###
-    print("Building models...")
+    print("Building models")
     model = StandardUNet(
         in_channels=config['model']['in_channels'],
         model_channels=config['model']['model_channels'],
@@ -45,9 +45,10 @@ def train(config):
     ### Setup Training ###
     optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'])
     scheduler = CosineAnnealingLR(optimizer, T_max=config['training']['epochs'])
+    cfg_prob = config['training'].get('cfg_prob', 0.1)
     mse = nn.MSELoss()
     
-    print("Starting training...")
+    print(f"Starting training: {config['training']['epochs']} epochs")
     for epoch in range(config['training']['epochs']):
         epoch_loss = 0
         for step, (lr_batch, hr_batch) in enumerate(dataloader):
@@ -55,6 +56,10 @@ def train(config):
             
             lr_batch = lr_batch.to(device)
             hr_batch = hr_batch.to(device)
+
+            # Randomly replace condition with zeros to train unconditional generation
+            if torch.rand(1).item() < cfg_prob:
+                lr_batch = torch.zeros_like(lr_batch)
             
             t = torch.randint(0, diffusion.timesteps, (hr_batch.shape[0],), device=device)
             
@@ -95,7 +100,7 @@ if __name__ == "__main__":
         'data': {'path': dataset_dir, 'hr_size': 128, 'scale_factor': 2},
         'model': {'in_channels': 3, 'model_channels': 64, 'time_emb_dim': 256},
         'diffusion': {'timesteps': 1000, 'beta_start': 1e-4, 'beta_end': 0.02},
-        'training': {'epochs': 50, 'batch_size': 16, 'learning_rate': 1e-4, 'save_dir': 'models'}
+        'training': {'epochs': 250, 'batch_size': 16, 'learning_rate': 1e-4, 'save_dir': 'models', 'cfg_prob': 0.1}
     }
     
     train(config)
