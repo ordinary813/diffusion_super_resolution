@@ -34,6 +34,7 @@ python3 sample.py
 .
 ├── 🗎 README.md
 ├── 🗎 requirements.txt
+├── 🗀 checkpoints
 └── 🗀 src
     ├── 🗀 models
     ├── 🗎 data.py
@@ -46,7 +47,7 @@ python3 sample.py
 ```
 
 ## Most recent model performance
-<span style="color:salmon">**At this point the model does not produce satisfactory results.**
-</span>
 
-![Models results](src/comparison_plot_all_models.png "Models results")
+![Models results](dynamic_comparison.png "Models results")
+
+![Models results](dynamic_comparison_1.png "Models results")
