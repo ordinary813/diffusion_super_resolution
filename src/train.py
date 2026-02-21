@@ -3,104 +3,59 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import CosineAnnealingLR
-
 from data import SuperResDataset
 from model import StandardUNet
 from diffusion import DiffusionModel
 
-def train(config):
-    ### Setup ###
-    device = "cuda" if torch.cuda.is_available() else "cpu"
-    data_path = config['data']['path']
-    hr_size = config['data']['hr_size']
-    scale_factor = config['data']['scale_factor']
+def train(experiment_name, channels = 128, use_attention = True, schedule = "cosine"):
+    device = "cuda"
+    epochs = 3000
+    save_dir = f"./experiments/{experiment_name}"
+    os.makedirs(save_dir, exist_ok=True)
     
-    ### Load Data ###
-    print("Loading dataset")
-    dataset = SuperResDataset(data_path, hr_size, scale_factor)
-    dataloader = DataLoader(
-        dataset,
-        batch_size=config['training']['batch_size'],
-        shuffle=True,
-        num_workers=4
-    )
+    model = StandardUNet(model_channels=channels, use_attention=use_attention).to(device)
+    diffusion = DiffusionModel(device=device, schedul_type=schedule)
+    optimizer = optim.AdamW(model.parameters(), lr=1e-4)
+    criterion = nn.MSELoss()
     
-    ### Build Model ###
-    print("Building models")
-    model = StandardUNet(
-        in_channels=config['model']['in_channels'],
-        model_channels=config['model']['model_channels'],
-        time_emb_dim=config['model']['time_emb_dim']
-    ).to(device)
-    
-    ### Build Diffusion Helper ###
-    diffusion = DiffusionModel(
-        timesteps=config['diffusion']['timesteps'],
-        beta_start=config['diffusion']['beta_start'],
-        beta_end=config['diffusion']['beta_end'],
-        device=device
-    )
+    # Resume Logic
+    ckpt_path = os.path.join(save_dir, "latest.pth")
+    start_epoch = 0
+    if os.path.exists(ckpt_path):
+        ckpt = torch.load(ckpt_path)
+        model.load_state_dict(ckpt['model'])
+        optimizer.load_state_dict(ckpt['optimizer'])
+        start_epoch = ckpt['epoch'] + 1
+        print(f"Resuming from epoch {start_epoch}")
 
-    ### Setup Training ###
-    optimizer = optim.Adam(model.parameters(), lr=config['training']['learning_rate'])
-    scheduler = CosineAnnealingLR(optimizer, T_max=config['training']['epochs'])
-    cfg_prob = config['training'].get('cfg_prob', 0.1)
-    mse = nn.MSELoss()
-    
-    print(f"Starting training: {config['training']['epochs']} epochs")
-    for epoch in range(config['training']['epochs']):
-        epoch_loss = 0
-        for step, (lr_batch, hr_batch) in enumerate(dataloader):
+    dataset = SuperResDataset("../data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_train_HR/DIV2K_train_HR", 256, 2)
+    loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4, pin_memory=True)
+
+    for epoch in range(start_epoch, epochs):
+        model.train()
+        total_loss = 0
+        for lr_img, hr_img in loader:
+            lr_img, hr_img = lr_img.to(device), hr_img.to(device)
+            t = torch.randint(0, 1000, (hr_img.shape[0],), device=device)
+            x_t, noise = diffusion.add_noise(hr_img, t)
+            
+            # CFG Dropout
+            if torch.rand(1).item() < 0.1: lr_img = torch.zeros_like(lr_img)
+            
+            pred_noise = model(x_t, t, lr_img)
+            loss = criterion(noise, pred_noise)
+            
             optimizer.zero_grad()
-            
-            lr_batch = lr_batch.to(device)
-            hr_batch = hr_batch.to(device)
-
-            # Randomly replace condition with zeros to train unconditional generation
-            if torch.rand(1).item() < cfg_prob:
-                lr_batch = torch.zeros_like(lr_batch)
-            
-            t = torch.randint(0, diffusion.timesteps, (hr_batch.shape[0],), device=device)
-            
-            x_t, epsilon = diffusion.add_noise(hr_batch, t) # Epsilon is the true noise
-            
-            predicted_noise = model(x_t, t, lr_batch)
-            
-            loss = mse(epsilon, predicted_noise)
-            
             loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             optimizer.step()
-            
-            epoch_loss += loss.item()
+            total_loss += loss.item()
         
-        scheduler.step()
-        avg_loss = epoch_loss / len(dataloader)
-        current_lr = scheduler.get_last_lr()[0]
-        print(f"Epoch {epoch+1} | Loss: {avg_loss:.4f} | LR: {current_lr:.6f}")
-
-        # Checkpoint
-        if (epoch + 1) % 50 == 0:
-            print(f"Saving checkpoint at epoch {epoch+1}...")
-            os.makedirs(config['training']['save_dir'], exist_ok=True)
-            save_path = os.path.join(config['training']['save_dir'], f"model_epoch_{epoch+1}.pth")
-            torch.save(model.state_dict(), save_path)
-            print(f"Checkpoint saved to {save_path}")
+        print(f"Epoch {epoch}: Loss {total_loss/len(loader):.6f}")
         
-    ### Save the model ###
-    os.makedirs(config['training']['save_dir'], exist_ok=True)
-    save_path = os.path.join(config['training']['save_dir'], f"model_epoch_{epoch+1}.pth")
-    torch.save(model.state_dict(), save_path)
-    print(f"Model saved to {save_path}")
+        # Save checkpoints
+        torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}, ckpt_path)
+        if epoch % 500 == 0:
+            torch.save(model.state_dict(), os.path.join(save_dir, f"model_{epoch}.pth"))
 
 if __name__ == "__main__":
-    dataset_dir = '../data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_train_HR'
-    config = {
-        'data': {'path': dataset_dir, 'hr_size': 128, 'scale_factor': 2},
-        'model': {'in_channels': 3, 'model_channels': 64, 'time_emb_dim': 256},
-        'diffusion': {'timesteps': 1000, 'beta_start': 1e-4, 'beta_end': 0.02},
-        'training': {'epochs': 250, 'batch_size': 16, 'learning_rate': 1e-4, 'save_dir': 'models', 'cfg_prob': 0.1}
-    }
-    
-    train(config)
+    train(experiment_name = "attention_128ch_linear", channels = 128, use_attention = True, schedule = "linear")

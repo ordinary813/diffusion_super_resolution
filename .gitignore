@@ -215,3 +215,7 @@ venv
 
 .vscode
 models/
+checkpoints/
+
+# Exclude models
+*.pth

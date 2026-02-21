@@ -6,7 +6,7 @@ from PIL import Image
 
 # An object to handle generality of images (cropping, downsampling)
 class SuperResDataset(Dataset):
-    def __init__(self, data_path, hr_size=128, scale_factor=4):
+    def __init__(self, data_path, hr_size=128, scale_factor=2):
         super().__init__()
         
         # Find all images
@@ -37,7 +37,7 @@ class SuperResDataset(Dataset):
         return len(self.image_files)
 
     # Gets an image index and returns a (LR, HR) pair
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         hr_image_pil = Image.open(self.image_files[idx]).convert('RGB')
         
         # Process HR with transfrom
