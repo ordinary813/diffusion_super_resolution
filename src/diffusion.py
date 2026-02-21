@@ -3,11 +3,11 @@ import torch.nn.functional as F
 import math
 
 class DiffusionModel:
-    def __init__(self, timesteps=1000, device="cuda", schedul_type = "cosine"):
+    def __init__(self, timesteps=1000, device="cuda", schedule_type = "cosine"):
         self.timesteps = timesteps
         self.device = device
 
-        if schedul_type == "cosine":
+        if schedule_type == "cosine":
             self.beta = self.cosine_beta_schedule(timesteps).to(device)
         else:
             self.beta = torch.linspace(1e-4, 0.02, timesteps).to(device)
