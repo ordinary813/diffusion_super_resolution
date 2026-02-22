@@ -78,7 +78,10 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
                 s1 = diffusion.sqrt_alpha_hat[t][:, None, None, None]
                 s2 = diffusion.sqrt_one_minus_alpha_hat[t][:, None, None, None]
                 pred_x0 = (x_t - s2 * pred_noise) / s1
-                loss_vgg = vgg_criterion(pred_x0, hr_img)
+                pred_x0 = torch.clamp(pred_x0, -1.0, 1.0)
+                valid_t = t > 500
+                if valid_t.any():
+                    loss_vgg = vgg_criterion(pred_x0[valid_t], hr_img[valid_t])
 
             batch_loss = loss_mse + 0.01 * loss_vgg
 
