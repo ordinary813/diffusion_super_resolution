@@ -99,9 +99,10 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
             writer.writerow([epoch, avg_loss])
         
         # Save checkpoints
-        torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}, ckpt_path)
+        if epoch % 25 == 0:
+            torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}, ckpt_path)
         if epoch % 500 == 0:
             torch.save(model.state_dict(), os.path.join(save_dir, f"model_{epoch}.pth"))
 
 if __name__ == "__main__":
-    train(experiment_name = "attention_128ch_cosine_VGG", channels = 128, use_attention = True, schedule = "cosine", use_VGG=True)
+    train(experiment_name = "attention_48ch_cosine_VGG", channels = 48, use_attention = True, schedule = "cosine", use_VGG=True)

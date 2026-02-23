@@ -1,6 +1,6 @@
+import math
 import torch
 import torch.nn.functional as F
-import math
 
 class DiffusionModel:
     def __init__(self, timesteps=1000, device="cuda", schedule_type = "cosine"):

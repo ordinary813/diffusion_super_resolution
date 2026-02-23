@@ -1,10 +1,10 @@
+import os
+import glob
+import math
+import random
 import torch
 import torchvision.transforms as transforms
 from PIL import Image
-import os
-import glob
-import random
-import math
 import matplotlib.pyplot as plt
 
 from model import StandardUNet
@@ -134,43 +134,29 @@ if __name__ == "__main__":
         img_path = get_image_path(config)
         lr_upscaled, hr_original = load_and_prepare_image(img_path, (256, 256), 2, device)
 
-        # Output layout
-        num_models = len(model_paths)
-        cols = 4
-        rows = math.ceil(num_models / cols) + 1
-        fig = plt.figure(figsize=(20, 5 * rows))
-        plt.suptitle(f"Training Quality Timeline: {os.path.basename(img_path)} (Exp: {exp_name})", fontsize=16)
+        # Create a 'images' sub directory
+        images_output_dir = os.path.join(exp_dir, "images")
+        os.makedirs(images_output_dir, exist_ok=True)
 
-        # Ground Truth
-        ax = plt.subplot(rows, 2, 1)
-        ax.imshow(un_normalize(hr_original))
-        ax.set_title("Ground Truth (HR)", fontsize=14)
-        ax.axis('off')
-        
-        # Input (Low res - Upscaled)
-        ax = plt.subplot(rows, 2, 2)
-        ax.imshow(un_normalize(lr_upscaled))
-        ax.set_title(f"Input (LR - {config['data']['scale_factor']}x upscaled)", fontsize=14)
-        ax.axis('off')
+        # Save base images
+        base_name = os.path.basename(img_path).split('.')[0]
+        plt.imsave(os.path.join(images_output_dir, f"{base_name}_HR.png"), un_normalize(hr_original))
+        plt.imsave(os.path.join(images_output_dir, f"{base_name}_LR_upscaled.png"), un_normalize(lr_upscaled))
 
-
-        for i, path in enumerate(model_paths):
-            print(f"Processing: {os.path.basename(path)}")
+        for path in model_paths:
+            print(f"Sampling for: {os.path.basename(path)}")
             checkpoint = torch.load(path, map_location=device)
             state_dict = checkpoint['model'] if 'model' in checkpoint else checkpoint
             model.load_state_dict(state_dict)
             model.eval()
             
+            # Generating the result
             result = run_sampling_loop(model, diffusion, lr_upscaled, cfg_scale=4.0)
-            
-            ax = plt.subplot(rows, cols, i + 1 + cols)
+
             epoch_num = path.split('_')[-1].split('.')[0]
-            ax.imshow(un_normalize(result))
-            ax.set_title(f"Epoch {epoch_num}", fontsize=10)
-            ax.axis('off')
-        
-        output_path = os.path.join(exp_dir, f"comparison_{exp_name}.png")
-        plt.tight_layout()
-        plt.savefig(output_path)
-        plt.close()
-        print(f"Saved results for {exp_name} to {output_path}\n")
+            save_path = os.path.join(images_output_dir, f"{epoch_num}.png")
+            plt.imsave(save_path, un_normalize(result))
+            
+            print(f"Saved: {save_path}")
+
+        print(f"Finished saving all images for {exp_name} to {images_output_dir}\n")
