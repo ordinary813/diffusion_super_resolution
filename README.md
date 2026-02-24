@@ -8,7 +8,7 @@ In this repository I will document my progress on the super-resolution project.
 3. [Optional] Project presentation
 
 ## How to run
-I highly recommend using a virtual environment in order to avoid conflicts with pre-existing libraries of different versions.
+I highly recommend using a virtual environment in order to avoid conflicts with pre-existing libraries of different versions and in general.
 ```
 python3 -m venv myenv
 pip install -r requirements.txt
