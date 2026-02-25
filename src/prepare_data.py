@@ -4,7 +4,7 @@ import random
 import shutil
 import glob
 
-def download_div2k(abs_download_dir: str):
+def download_div2k():
     path = kagglehub.dataset_download(
         "soumikrakshit/div2k-high-resolution-images",
         force_download=False

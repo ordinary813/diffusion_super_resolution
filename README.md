@@ -1,6 +1,6 @@
 # Image Super Resolution using Diffusion models
 
-In this repository I will document my progress on the super-resolution project.
+This repo contains the source files for the Image Super Resolution project, utilizing conditional diffusion models.
 
 ## Deliverables (in the repo)
 1. A working model/ A few working models
@@ -14,40 +14,37 @@ python3 -m venv myenv
 pip install -r requirements.txt
 cd src
 ```
-Download datasets with
-```
-python3 prepare_data.py
-```
+* Run `python3 prepare_data.py` to download the datasets locally, for training.
+* Run `python3 train.py` to train the UNet model. 
 
-Train the UNet model
-```
-python3 train.py
-```
+The training file has a few parameters for training a specific model:
+1. `experiment_name` - a custom name for the model that is about to be trained.
+2. `channels` - the amount of kernels/channels in the initial/last convolutional layers of the U-Net.
+3. `use_attention` - utilize self-attention in the model.
+4. `schedule` - either linear or cosine.
+5. `use_VGG` - utilize a frozen VGG network to tweak the objective function.
 
-Test the trained models
-```
-python3 sample.py
-```
+* Run `python3 sample.py` to run inference on all models inside the `experiments` directory, this will produce another sub-directory `images` with the generated results. 
+* Run `python3 compare.py` to produce a timeline of PSNR and SSIM metrics for each sub-directory in `experiments`.
 
 ## Current project structure
 ``` bash
 .
 ├── 🗎 README.md
 ├── 🗎 requirements.txt
-├── 🗀 checkpoints
+├── 🗀 experiments
 └── 🗀 src
-    ├── 🗀 models
     ├── 🗎 data.py
     ├── 🗎 diffusion.py
     ├── 🗎 model.py
-    ├── 🗎 comparison_plot_all_models.png
+    ├── 🗎 compare.py
     ├── 🗎 prepare_data.py
     ├── 🗎 sample.py
     └── 🗎 train.py
 ```
 
-## Most recent model performance
+## Model Timeline Performance
 
-![Models results](dynamic_comparison.png "Models results")
+![Models results](experiments/no_attention_128ch_cosine/comparison_no_attention_128ch_cosine_1.png "Models results")
 
-![Models results](dynamic_comparison_1.png "Models results")
+![Models results](experiments/attention_128ch_linear/comparison_attention_128ch_linear_2.png "Models results")
