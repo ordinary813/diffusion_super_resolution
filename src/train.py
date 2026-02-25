@@ -18,9 +18,18 @@ class VGGLoss(nn.Module):
         self.vgg = vgg
         self.mse = nn.MSELoss()
 
+        self.register_buffer("mean", torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1))
+        self.register_buffer("std", torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1))
+
     def forward(self, input, target):
-        vgg_input = self.vgg(input)
-        vgg_target = self.vgg(target)
+        input_01 = (input + 1.0) / 2.0
+        target_01 = (target + 1.0) / 2.0
+        
+        input_norm = (input_01 - self.mean) / self.std
+        target_norm = (target_01 - self.mean) / self.std
+        
+        vgg_input = self.vgg(input_norm)
+        vgg_target = self.vgg(target_norm)
         return self.mse(vgg_input, vgg_target)
 
 
@@ -46,7 +55,7 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
         optimizer.load_state_dict(ckpt['optimizer'])
         start_epoch = ckpt['epoch'] + 1
         print(f"Resuming from epoch {start_epoch}")
-    
+    1, 
     log_path = os.path.join(save_dir, "train_log.csv")
     if not os.path.exists(log_path):
         with open(log_path, 'w', newline='') as f:
@@ -54,7 +63,9 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
             writer.writerow(['epoch', 'loss'])
 
 
-    dataset = SuperResDataset("../data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_train_HR/DIV2K_train_HR", 256, 2)
+    dataset = SuperResDataset("./data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_train_HR/DIV2K_train_HR", 256, 2)
+    # dataset = SuperResDataset("./data/datasets/badasstechie/celebahq-resized-256x256/versions/1/train", 128, 2)
+
     loader = DataLoader(dataset, batch_size=8, shuffle=True, num_workers=4, pin_memory=True)
 
     for epoch in range(start_epoch, epochs):
@@ -73,7 +84,7 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
             loss_mse = criterion(noise, pred_noise)
             
             # VGG loss
-            loss_vgg = 0
+            loss_vgg = torch.tensor(0.0, device=device)
             if use_VGG:
                 s1 = diffusion.sqrt_alpha_hat[t][:, None, None, None]
                 s2 = diffusion.sqrt_one_minus_alpha_hat[t][:, None, None, None]
@@ -99,10 +110,12 @@ def train(experiment_name, channels = 128, use_attention = True, schedule = "cos
             writer.writerow([epoch, avg_loss])
         
         # Save checkpoints
-        if epoch % 25 == 0:
+        if epoch % 5 == 0:
             torch.save({'model': model.state_dict(), 'optimizer': optimizer.state_dict(), 'epoch': epoch}, ckpt_path)
         if epoch % 500 == 0:
             torch.save(model.state_dict(), os.path.join(save_dir, f"model_{epoch}.pth"))
 
 if __name__ == "__main__":
-    train(experiment_name = "attention_48ch_cosine_VGG", channels = 48, use_attention = True, schedule = "cosine", use_VGG=True)
+    # train(experiment_name = "attention_64ch_cosine_celebA", channels = 64, use_attention = True, schedule = "cosine", use_VGG=False)
+    # train(experiment_name = "attention_64ch_cosine_VGG", channels = 64, use_attention = True, schedule = "cosine", use_VGG=True)
+    train(experiment_name = "no_attention_128ch_linear", channels = 128, use_attention = False, schedule = "linear", use_VGG=False)

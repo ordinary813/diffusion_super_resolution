@@ -11,7 +11,7 @@ from model import StandardUNet
 from diffusion import DiffusionModel
 
 USE_RANDOM_IMAGE = True 
-FIXED_IMAGE_PATH = "../data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_valid_HR/DIV2K_valid_HR/0016.png"
+FIXED_IMAGE_PATH = "./data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_valid_HR/DIV2K_valid_HR/0016.png"
 
 # Load and preprocess an image
 def load_and_prepare_image(hr_image_path, target_size, scale_factor, device):
@@ -101,7 +101,7 @@ def get_model_paths(save_dir):
 if __name__ == "__main__":
     device = "cuda" if torch.cuda.is_available() else "cpu"
     
-    dataset_dir = '../data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_valid_HR'
+    dataset_dir = './data/datasets/soumikrakshit/div2k-high-resolution-images/versions/1/DIV2K_valid_HR'
     base_experiments_dir = "experiments"
 
     # Get all experiment sub directories
@@ -153,8 +153,13 @@ if __name__ == "__main__":
             # Generating the result
             result = run_sampling_loop(model, diffusion, lr_upscaled, cfg_scale=4.0)
 
-            epoch_num = path.split('_')[-1].split('.')[0]
-            save_path = os.path.join(images_output_dir, f"{epoch_num}.png")
+            file_name = os.path.basename(path).replace('.pth', '')
+            if 'latest' in file_name:
+                save_path = os.path.join(images_output_dir, "final_latest.png")
+            else:
+                epoch_num = file_name.split('_')[-1]
+                save_path = os.path.join(images_output_dir, f"{epoch_num}.png")
+            
             plt.imsave(save_path, un_normalize(result))
             
             print(f"Saved: {save_path}")
