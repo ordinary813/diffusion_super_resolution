@@ -216,7 +216,6 @@ venv
 .vscode
 models/
 checkpoints/
-experiments/
 
 # Exclude models
 *.pth
